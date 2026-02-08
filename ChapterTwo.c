@@ -13,6 +13,11 @@ int asciiToInteger(const char *intString);
 int changeToLower(const char c);
 int hexToDec(const char *hex);
 char *squeeze(char *s, char c);
+char *concatString(char *s1, char *s2);
+char *squeezeVerTwo(char *s1, const char *s2);
+int any(const char *s1, const char *s2);
+unsigned int setbits(unsigned int x, int p, int n, unsigned int y);
+unsigned int invert(unsigned int x, int p, int n); 
 
 int main(void) {
 
@@ -71,11 +76,38 @@ int main(void) {
 	/*
 	printf("%d\t%d\t%d\t%d\t%d\n", hexToDec("0x10fa"), hexToDec("0XBABE"), hexToDec("0xbabe"), hexToDec("0XFACE"), hexToDec("0xface"));
 	*/
-
+	/*
 	char *stringExample = (char *)malloc(strlen("ExampleProgram") + 1);
 	strcpy(stringExample, "ExampleProgram");
 	printf("%s\n", squeeze(stringExample, 'x'));
 	free(stringExample);
+	*/
+	
+
+	/*
+    	char *concatStringEx = (char *)malloc(strlen("Hello, ") + strlen("World") + 1);
+   	strcpy(concatStringEx, "Hello, ");
+    	printf("%s", concatString(concatStringEx, "World!"));
+    	free(concatStringEx);
+	*/
+
+
+	/********************************************** Exercise 2-4 *****************************************/
+	/*
+	char *s1 = (char *)malloc(strlen("Cat") + 1);
+	strcpy(s1, "Cat");
+	const char *s2 = "Dat";
+	printf("%s\n", squeezeVerTwo(s1, s2));
+	free(s1);
+	*/
+	/********************************************************************************************************/
+	
+	/********************************************** Excercise 2-5 ********************************************/
+	const char *s1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"; 
+	const char *s2 = "Z";
+	printf("%d\n", any(s1, s2));
+
+
 
 	return 0;
 
@@ -136,14 +168,78 @@ int hexToDec(const char *hex) {
 char *squeeze(char *s, char c) {
 	int i = 0, j = 0;
 
-	while(*s != '\0') {
-		if (*s == c) {
-			s++; j++;
-			continue;
-		}
-		*(s + i) = *(s + j);
-		s++; i++; j++;
+	while(*(s + j) != '\0') {
+		if (*(s + j) != c) {
+		    *(s + i) = *(s + j);
+		    i++; j++;
+		} else j++;
+
 	}
 
+	*(s + i) = '\0';
 	return s;
+}
+
+char *concatString(char *s1, char *s2) {
+	while(*s1) s1++;
+	while(*s1 = *s2) { s1++; s2++; }
+
+	return s1;
+}
+
+char *squeezeVerTwo(char *s1, const char *s2) {
+	int dontcopy = 0;
+	int i, j, k = 0;
+
+	for(i = 0; *(s1 + i) != '\0'; i++) {
+		dontcopy = 0;
+		for(j = 0; *(s2 + j) != '\0'; j++) {
+			if(*(s1 + i) == *(s2 + j)) {
+				dontcopy = 1;
+				break;
+			}
+		}
+		if(!dontcopy) {
+			*(s1 + k++) = *(s1 + i);	
+		}
+	}
+	
+	*(s1 + k) = '\0';
+	return s1;
+}
+
+int any(const char *s1, const char *s2) {
+	int i, j;
+
+	for(i = 0; *(s1 + i) != '\0'; i++) {
+		for(j = 0; *(s2 + j) != '\0'; j++) {
+			if(*(s1 + i) == *(s2 + j))
+				return i;
+		}
+	}
+
+	return -1;
+}
+
+unsigned int setbits(unsigned int x, int p, int n, unsigned int y) {
+	int copyOfp = p;
+
+	int extractedBits = (y & ~(~0 << n));
+	for(int i = 0; i < n; i++) x &= ~(1 << p--);
+	p = copyOfp;
+	x |= (extractedBits << (p + 1 - n));
+
+	return x;
+}
+
+unsigned int invert(unsigned int x, int p, int n) {
+    int copyOfp = p;
+    
+    int invertedBits = ~x;
+    int extractedBits = ((invertedBits >> (p + 1 - n)) & ~(~0 << n));
+    for(int i = 0; i < n; i++) x &= ~(1 << p--);
+    p = copyOfp;
+    x |= (extractedBits << (p + 1 - n));
+    
+    return x;
 }
