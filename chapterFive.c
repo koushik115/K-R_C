@@ -5,6 +5,9 @@
 #define SIZE 100
 #define ALLOCSIZE   10000
 
+#define MAXLINE	5000
+char *lineptr[MAXLINE];
+
 void swap(int *px, int *py);
 
 int getch(void);
@@ -18,6 +21,10 @@ int strEnd(char *s, const char *t);
 void strCpyByWidth(char *s, const char *t, int width);
 void strCatByWidth(char *s, const char *t, int width);
 int strCmpByWidth(char *s, const char *t, int width);
+
+int readlines(char *lineptr[], int maxlines);
+void writelines(char *lineptr[], int maxlines);
+int readlinesLocal(char *lineptr[], int maxlines, char buffer[], int buffersize); 
 
 // int main(void) {
 //     int n, array[SIZE], getint(int *);
@@ -56,6 +63,8 @@ int main(void) {
 // 			printf("Read integer: %d\n", n);
 // 		}
 // 	}
+// 	
+	/*
     while ((status = getfloat(&f)) != EOF) {
         if (status == 0) {
             printf("Not a float\n");
@@ -68,6 +77,19 @@ int main(void) {
 
 	printf("EOF reached\n");
 	return 0;
+	*/
+
+
+	int nlines;
+
+	if((nlines = readlines(lineptr, MAXLINES)) >= 0) {
+		/* qsort(lineptr, 0, nlines - 1); */
+		writelines(lineptr, nlines);
+		return 0;
+	} else {
+		printf("error: input too big to sort\n");
+		return 1;
+	}
 }
 
 void swap(int *px, int *py) {
@@ -77,7 +99,6 @@ void swap(int *px, int *py) {
 	*px = *py;
 	*py = temp;
 }
-
 
 
 int getint(int *pn) {
@@ -285,4 +306,106 @@ char *alloc(int n) {
 void afree(char *p) {
     if (p >= allocbuf && p < (allocbuf + ALLOCSIZE))
         allocp = p;
+}
+
+static char daytab[2][13] = {
+	{0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+	{0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+};
+
+int day_of_year(int year, int month, int day) {
+	int i, leap;
+	leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
+	if(!((month > 0 && month <= 12) && (day > 0 && day <= daytab[leap][month]))) return -1; 
+	for(i = 1; i < month; i++)
+		day += daytab[leap][i];
+
+	return day;
+}
+
+void month_day(int year, int yearday, int *pmonth, int *pday) {
+	int i, leap;
+	
+	leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
+	if((leap && !(yearday > 0 && yearday <= 366)) || (!leap && !(yearday > 0 && yearday <= 365))) return;
+	for(i = 1; yearday > daytab[leap][i]; i++)
+		yearday -= daytab[leap][i];
+
+	*pmonth = i;
+	*pday = yearday;
+}
+
+
+#define MAXLEN	1000
+int getline(char *line, int maxlen);
+char *alloc(int n);
+
+int readlines(char *lineptr[], int maxlines) {
+	int len, nlines;
+	char *p, line[MAXLEN];
+	
+	nlines = 0;
+	while((len = getline(line, MAXLEN)) > 0) {
+		if((nlines >= maxlines) || (p = alloc(len)) == NULL) 
+			return -1;
+		else {
+			line[len - 1] = '\0';
+			strcpy(p, line);
+			lineptr[nlines++] = p;
+		}
+	}
+
+	return nlines;
+}
+
+int readlinesLocal(char *lineptr[], int maxlines, char buffer[], int buffersize) {
+	int len, nlines, i;
+	line[MAXLEN];
+
+	nlines = 0;
+	i = 0;
+	while((len = getline(line, MAXLEN)) > 0) {
+		if((nlines >= maxlines) || (i >= buffersize))
+			return -1;
+		else {
+			line[len - 1] = '\0';
+			strcpy(buffer + i, line);
+			lineptr[nlines++] = buffer + i;
+			i += len;
+		}
+	}
+
+	return nlines;
+}
+
+
+void writelines(char *lineptr[], int maxlines) {
+	for(int i = 0; i < maxlines; i++)
+		printf("%s\n", lineptr[i]);
+}
+
+int getline(char *line, int maxlen) {
+	int i, c;
+
+	for(i = 0; i < maxlen - 1 && (c = getchar()) != EOF; i++)
+		line[i] = c;
+
+	if(c == '\n')
+		line[i++] = c;
+
+	line[i] = '\0';
+	return i;
+}
+
+#define ALLOCSIZE 100
+char allocbuffer[ALLOCSIZE];
+char *allocp = allocbuffer;
+
+char *alloc(int n) {
+	if ((allocbuff + ALLOCSIZE - allocp) > n) {
+		allocp += n;
+		return allocp - n;
+	}
+
+	return NULL;
 }
