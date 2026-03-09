@@ -1,11 +1,11 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
 #define SIZE 100
-#define ALLOCSIZE   10000
+#define ALLOCSIZE 10000
 
-#define MAXLINE	5000
+#define MAXLINE 5000
 char *lineptr[MAXLINE];
 
 void swap(int *px, int *py);
@@ -24,7 +24,21 @@ int strCmpByWidth(char *s, const char *t, int width);
 
 int readlines(char *lineptr[], int maxlines);
 void writelines(char *lineptr[], int maxlines);
-int readlinesLocal(char *lineptr[], int maxlines, char buffer[], int buffersize); 
+int readlinesLocal(char *lineptr[], int maxlines, char buffer[],
+                   int buffersize);
+
+#define STACK_ARRAY_SIZE 100
+
+int stackArray[STACK_ARRAY_SIZE];
+int stackp = -1;
+
+void pushStackArray(int character);
+int popStackArray(void);
+int isEmptyStackArray(void);
+int isFullStackArray(void);
+int topStackArray(void);
+
+void evaluateToPostfix(char expr);
 
 // int main(void) {
 //     int n, array[SIZE], getint(int *);
@@ -49,352 +63,368 @@ int readlinesLocal(char *lineptr[], int maxlines, char buffer[], int buffersize)
 //}
 
 int main(void) {
-	int n, getint(int *);
-	int status;
-	float f, getfloat(float *);
+  int n, getint(int *);
+  int status;
+  float f, getfloat(float *);
 
-// 	printf("Enter test input (Ctrl+D to end):\n");
+  // 	printf("Enter test input (Ctrl+D to end):\n");
 
-// 	while ((status = getint(&n)) != EOF) {
-// 		if (status == 0) {
-// 			printf("Not a number\n");
-// 			getch();   // discard one character
-// 		} else {
-// 			printf("Read integer: %d\n", n);
-// 		}
-// 	}
-// 	
-	/*
-    while ((status = getfloat(&f)) != EOF) {
-        if (status == 0) {
-            printf("Not a float\n");
-            getch();
-        }
-        else
-            printf("Read float: %.6f\n", f);
-    }
-
-
-	printf("EOF reached\n");
-	return 0;
-	*/
+  // 	while ((status = getint(&n)) != EOF) {
+  // 		if (status == 0) {
+  // 			printf("Not a number\n");
+  // 			getch();   // discard one character
+  // 		} else {
+  // 			printf("Read integer: %d\n", n);
+  // 		}
+  // 	}
+  //
+  /*
+while ((status = getfloat(&f)) != EOF) {
+  if (status == 0) {
+      printf("Not a float\n");
+      getch();
+  }
+  else
+      printf("Read float: %.6f\n", f);
+}
 
 
-	int nlines;
+  printf("EOF reached\n");
+  return 0;
+  */
 
-	if((nlines = readlines(lineptr, MAXLINES)) >= 0) {
-		/* qsort(lineptr, 0, nlines - 1); */
-		writelines(lineptr, nlines);
-		return 0;
-	} else {
-		printf("error: input too big to sort\n");
-		return 1;
-	}
+  int nlines;
+
+  if ((nlines = readlines(lineptr, MAXLINES)) >= 0) {
+    /* qsort(lineptr, 0, nlines - 1); */
+    writelines(lineptr, nlines);
+    return 0;
+  } else {
+    printf("error: input too big to sort\n");
+    return 1;
+  }
+
+  int i, j;
+
+  for (i = 1; i < argc; i++) {
+    for (j = 0; argv[i][j] != '\0'; j++)
+      evaluateToPostfix(argv[i][j]);
+  }
+
+  printf("%d\t", topStackArray());
+  return 0;
 }
 
 void swap(int *px, int *py) {
-	int temp;
+  int temp;
 
-	temp = *px;
-	*px = *py;
-	*py = temp;
+  temp = *px;
+  *px = *py;
+  *py = temp;
 }
 
-
 int getint(int *pn) {
-	int c, sign;
+  int c, sign;
 
-	while(isspace(c = getch()));
+  while (isspace(c = getch()))
+    ;
 
-	if(!isdigit(c) && c != '-' && c != '+') {
-		if (c != EOF) {
-			ungetch(c);
-			return 0;
-		} else {
-			return EOF;
-		}
+  if (!isdigit(c) && c != '-' && c != '+') {
+    if (c != EOF) {
+      ungetch(c);
+      return 0;
+    } else {
+      return EOF;
+    }
+  }
 
-	}
+  sign = (c == '-') ? -1 : 1;
+  if (c == '-' || c == '+') {
+    int d = getch();
+    if (!isdigit(d)) {
+      ungetch(d);
+      ungetch(c);
+      return 0;
+    }
 
-	sign = (c == '-') ? -1 : 1;
-	if (c == '-' || c == '+') {
-		int d = getch();
-		if(!isdigit(d)) {
-			ungetch(d);
-			ungetch(c);
-			return 0;
-		}
+    c = d;
+  }
 
-		c = d;
-	}
+  for (*pn = 0; isdigit(c); c = getch())
+    *pn = 10 * *pn + (c - '0');
 
-	for(*pn = 0; isdigit(c); c = getch())
-		*pn = 10 * *pn + (c - '0');
+  *pn *= sign;
+  if (c != EOF)
+    ungetch(c);
+  else {
+    return EOF;
+  }
 
-	*pn *= sign;
-	if (c != EOF)
-		ungetch(c);
-	else {
-		return EOF;
-	}
-
-	return c;
+  return c;
 }
 
 float getfloat(float *pn) {
-	int c, sign;
-	float decimal = 1.0;
-	while(isspace(c = getch()));
+  int c, sign;
+  float decimal = 1.0;
+  while (isspace(c = getch()))
+    ;
 
-	if (!isdigit(c) && c != '+' && c != '-' && c != '.' && c != EOF) {
-		if (c != EOF) {
-			ungetch(c);
-			return 0;
-		} else {
-			return EOF;
-		}
-	}
+  if (!isdigit(c) && c != '+' && c != '-' && c != '.' && c != EOF) {
+    if (c != EOF) {
+      ungetch(c);
+      return 0;
+    } else {
+      return EOF;
+    }
+  }
 
-	sign  = (c == '-') ? -1 : 1;
-	if (c == '-' || c == '+' || c == '.') {
-		int d = getch();
-		if(!isdigit(d)) {
-			ungetch(d);
-			ungetch(c);
-			return 0;
-		}
-        if (c == '.') decimal *= 10.0;
-		c = d;
-	}
+  sign = (c == '-') ? -1 : 1;
+  if (c == '-' || c == '+' || c == '.') {
+    int d = getch();
+    if (!isdigit(d)) {
+      ungetch(d);
+      ungetch(c);
+      return 0;
+    }
+    if (c == '.')
+      decimal *= 10.0;
+    c = d;
+  }
 
-	for(*pn = 0.0; isdigit(c); c = getch()) {
-		*pn = *pn * 10.0 + (c - '0');
-	}
+  for (*pn = 0.0; isdigit(c); c = getch()) {
+    *pn = *pn * 10.0 + (c - '0');
+  }
 
-	if (c == '.') {
-		c = getch();
-	}
+  if (c == '.') {
+    c = getch();
+  }
 
-	for(; isdigit(c); c = getch()) {
-		*pn = *pn * 10.0 + (c - '0');
-		decimal *= 10.0;
-	}
+  for (; isdigit(c); c = getch()) {
+    *pn = *pn * 10.0 + (c - '0');
+    decimal *= 10.0;
+  }
 
-	*pn *= sign / decimal;
-	if (c != EOF)
-		ungetch(c);
+  *pn *= sign / decimal;
+  if (c != EOF)
+    ungetch(c);
 
-	return c;
+  return c;
 }
 
 int buffer[SIZE];
 int buffp = 0;
 
-int getch(void) {
-	return (buffp > 0) ? buffer[--buffp] : getchar();
-}
+int getch(void) { return (buffp > 0) ? buffer[--buffp] : getchar(); }
 void ungetch(int c) {
-	if (buffp < SIZE)
-		buffer[buffp++] = c;
-	else
-		printf("error: buffer overflow!!\n");
+  if (buffp < SIZE)
+    buffer[buffp++] = c;
+  else
+    printf("error: buffer overflow!!\n");
 }
 
 int strLen(char *s) {
-    char *p = s;
-    
-    while(*p != '\0') p++;
-    
-    return p - s;
+  char *p = s;
+
+  while (*p != '\0')
+    p++;
+
+  return p - s;
 }
 
 void strCpy(char *s, const char *t) {
-    while(*s++ = *t++);
+  while (*s++ = *t++)
+    ;
 }
 
 int strCmp(const char *s, const char *t) {
-    for(; *s == *t; s++, t++) {
-        if (*s == '\0')
-            return 0;
-    }
-    
-    return *s - *t;
+  for (; *s == *t; s++, t++) {
+    if (*s == '\0')
+      return 0;
+  }
+
+  return *s - *t;
 }
 
 void strCat(char *s, const char *t) {
-    while(*s) s++;
-    while(*s++ = *t++);
+  while (*s)
+    s++;
+  while (*s++ = *t++)
+    ;
 }
 
 int strEnd(char *s, const char *t) {
-    const char *tCopy = t;
-    const char *sCopy = s;
-    int tCount = 0;
-    int sCount = 0;
-    
-    while(*tCopy) {
-        tCount++;
-        tCopy++;
-    }
-    
-    while(*sCopy) {
-        sCount++;
-        sCopy++;
-    }
-    
-    if (tCount > sCount) return 0;
-    
-    while(*s != '\0')
-        s++;
-    s -= tCount;
-    
-    for(; *s == *t; s++, t++) {
-        if (*s == '\0')
-            return 1;
-    }
-    
+  const char *tCopy = t;
+  const char *sCopy = s;
+  int tCount = 0;
+  int sCount = 0;
+
+  while (*tCopy) {
+    tCount++;
+    tCopy++;
+  }
+
+  while (*sCopy) {
+    sCount++;
+    sCopy++;
+  }
+
+  if (tCount > sCount)
     return 0;
+
+  while (*s != '\0')
+    s++;
+  s -= tCount;
+
+  for (; *s == *t; s++, t++) {
+    if (*s == '\0')
+      return 1;
+  }
+
+  return 0;
 }
 
 void strCpyByWidth(char *s, const char *t, int width) {
-    while((*s = *t) && width > 0) {
-        s++;
-        t++;
-        width--;
-    }
-    
-    if(*s != '\0' && width == 0) *s = '\0';
+  while ((*s = *t) && width > 0) {
+    s++;
+    t++;
+    width--;
+  }
+
+  if (*s != '\0' && width == 0)
+    *s = '\0';
 }
 
 void strCatByWidth(char *s, const char *t, int width) {
-    while(*s) s++;
-    
-    while((*s = *t) && width > 0) {
-        s++;
-        t++;
-        width--;
-    }
-    
-    if(*s != '\0' && width == 0) *s = '\0';
+  while (*s)
+    s++;
+
+  while ((*s = *t) && width > 0) {
+    s++;
+    t++;
+    width--;
+  }
+
+  if (*s != '\0' && width == 0)
+    *s = '\0';
 }
 
 int strCmpByWidth(char *s, const char *t, int width) {
-    for(; (*s == *t) && width > 0; s++, t++, width--) {
-        if (*s == '\0')
-            return 0;
-    }
-    
-    return (width == 0) ? 0 : (*s - *t);
+  for (; (*s == *t) && width > 0; s++, t++, width--) {
+    if (*s == '\0')
+      return 0;
+  }
+
+  return (width == 0) ? 0 : (*s - *t);
 }
 
-
 /*
-*   Memory Allocator and De-allocator
-*/
+ *   Memory Allocator and De-allocator
+ */
 char allocbuf[ALLOCSIZE];
 char *allocp = allocbuf;
 
 char *alloc(int n) {
-    if ((allocbuf + ALLOCSIZE - allocp) >= n) {
-        allocp += n;
-        return allocp - n;
-    } else {
-        return NULL;
-    }
+  if ((allocbuf + ALLOCSIZE - allocp) >= n) {
+    allocp += n;
+    return allocp - n;
+  } else {
+    return NULL;
+  }
 }
 
 void afree(char *p) {
-    if (p >= allocbuf && p < (allocbuf + ALLOCSIZE))
-        allocp = p;
+  if (p >= allocbuf && p < (allocbuf + ALLOCSIZE))
+    allocp = p;
 }
 
 static char daytab[2][13] = {
-	{0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-	{0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
-};
+    {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+    {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
 
 int day_of_year(int year, int month, int day) {
-	int i, leap;
-	leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
-	if(!((month > 0 && month <= 12) && (day > 0 && day <= daytab[leap][month]))) return -1; 
-	for(i = 1; i < month; i++)
-		day += daytab[leap][i];
+  int i, leap;
+  leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
+  if (!((month > 0 && month <= 12) && (day > 0 && day <= daytab[leap][month])))
+    return -1;
+  for (i = 1; i < month; i++)
+    day += daytab[leap][i];
 
-	return day;
+  return day;
 }
 
 void month_day(int year, int yearday, int *pmonth, int *pday) {
-	int i, leap;
-	
-	leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
-	if((leap && !(yearday > 0 && yearday <= 366)) || (!leap && !(yearday > 0 && yearday <= 365))) return;
-	for(i = 1; yearday > daytab[leap][i]; i++)
-		yearday -= daytab[leap][i];
+  int i, leap;
 
-	*pmonth = i;
-	*pday = yearday;
+  leap = ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0));
+  if ((leap && !(yearday > 0 && yearday <= 366)) ||
+      (!leap && !(yearday > 0 && yearday <= 365)))
+    return;
+  for (i = 1; yearday > daytab[leap][i]; i++)
+    yearday -= daytab[leap][i];
+
+  *pmonth = i;
+  *pday = yearday;
 }
 
-
-#define MAXLEN	1000
+#define MAXLEN 1000
 int getline(char *line, int maxlen);
 char *alloc(int n);
 
 int readlines(char *lineptr[], int maxlines) {
-	int len, nlines;
-	char *p, line[MAXLEN];
-	
-	nlines = 0;
-	while((len = getline(line, MAXLEN)) > 0) {
-		if((nlines >= maxlines) || (p = alloc(len)) == NULL) 
-			return -1;
-		else {
-			line[len - 1] = '\0';
-			strcpy(p, line);
-			lineptr[nlines++] = p;
-		}
-	}
+  int len, nlines;
+  char *p, line[MAXLEN];
 
-	return nlines;
+  nlines = 0;
+  while ((len = getline(line, MAXLEN)) > 0) {
+    if ((nlines >= maxlines) || (p = alloc(len)) == NULL)
+      return -1;
+    else {
+      line[len - 1] = '\0';
+      strcpy(p, line);
+      lineptr[nlines++] = p;
+    }
+  }
+
+  return nlines;
 }
 
-int readlinesLocal(char *lineptr[], int maxlines, char buffer[], int buffersize) {
-	int len, nlines, i;
-	line[MAXLEN];
+int readlinesLocal(char *lineptr[], int maxlines, char buffer[],
+                   int buffersize) {
+  int len, nlines, i;
+  line[MAXLEN];
 
-	nlines = 0;
-	i = 0;
-	while((len = getline(line, MAXLEN)) > 0) {
-		if((nlines >= maxlines) || (i >= buffersize))
-			return -1;
-		else {
-			line[len - 1] = '\0';
-			strcpy(buffer + i, line);
-			lineptr[nlines++] = buffer + i;
-			i += len;
-		}
-	}
+  nlines = 0;
+  i = 0;
+  while ((len = getline(line, MAXLEN)) > 0) {
+    if ((nlines >= maxlines) || (i >= buffersize))
+      return -1;
+    else {
+      line[len - 1] = '\0';
+      strcpy(buffer + i, line);
+      lineptr[nlines++] = buffer + i;
+      i += len;
+    }
+  }
 
-	return nlines;
+  return nlines;
 }
-
 
 void writelines(char *lineptr[], int maxlines) {
-	for(int i = 0; i < maxlines; i++)
-		printf("%s\n", lineptr[i]);
+  for (int i = 0; i < maxlines; i++)
+    printf("%s\n", lineptr[i]);
 }
 
 int getline(char *line, int maxlen) {
-	int i, c;
+  int i, c;
 
-	for(i = 0; i < maxlen - 1 && (c = getchar()) != EOF; i++)
-		line[i] = c;
+  for (i = 0; i < maxlen - 1 && (c = getchar()) != EOF; i++)
+    line[i] = c;
 
-	if(c == '\n')
-		line[i++] = c;
+  if (c == '\n')
+    line[i++] = c;
 
-	line[i] = '\0';
-	return i;
+  line[i] = '\0';
+  return i;
 }
 
 #define ALLOCSIZE 100
@@ -402,10 +432,77 @@ char allocbuffer[ALLOCSIZE];
 char *allocp = allocbuffer;
 
 char *alloc(int n) {
-	if ((allocbuff + ALLOCSIZE - allocp) > n) {
-		allocp += n;
-		return allocp - n;
-	}
+  if ((allocbuff + ALLOCSIZE - allocp) > n) {
+    allocp += n;
+    return allocp - n;
+  }
 
-	return NULL;
+  return NULL;
+}
+
+void pushStackArray(int character) {
+  if (isFullStackArray()) {
+    printf("error: stack overflow!\n");
+    return;
+  }
+
+  stackArray[++stackp] = character;
+}
+
+int popStackArray(void) {
+  if (isEmptyStackArray()) {
+    return CHAR_MIN;
+  }
+
+  return stackArray[stackp--];
+}
+
+int topStackArray(void) {
+  if (isEmptyStackArray())
+    return CHAR_MIN;
+  return stackArray[stackp];
+}
+
+int isEmptyStackArray(void) { return (stackp == -1); }
+
+int isFullStackArray(void) { return (stackp == STACK_ARRAY_SIZE - 1); }
+
+void evaluateToPostfix(char expr) {
+  int i, op1, op2, res;
+
+  if (expr == ' ')
+    return;
+
+  if (expr >= '0' && expr <= '9')
+    pushStackArray(expr - '0');
+  else if (expr == '+' || expr == '-' || expr == '*' || expr == '/' ||
+           expr == '%') {
+    op2 = popStackArray();
+    op1 = popStackArray();
+
+    switch (expr) {
+    case '+':
+      pushStackArray(op1 + op2);
+      break;
+    case '-':
+      pushStackArray(op1 - op2);
+      break;
+    case '*':
+      pushStackArray(op1 * op2);
+      break;
+    case '/':
+      if (op2 != 0)
+        pushStackArray(op1 / op2);
+      else
+        printf("error: illegal operaion\n");
+      break;
+
+    case '%':
+      if (op2 != 0)
+        pushStackArray(op1 % op2);
+      else
+        printf("error: illegal operaion\n");
+      break;
+    }
+  }
 }
