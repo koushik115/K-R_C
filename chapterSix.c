@@ -6,9 +6,6 @@
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
-int getword(char *word, int lim);
-int binsearch(char *word, struct key *keytab, int n);
-
 struct point {
   int x;
   int y;
@@ -19,9 +16,11 @@ struct rect {
   struct point pt2;
 };
 
+#define NKEYS	(sizeof(keytab) / sizeof(keytab[0]))
+
 struct key {
   char *word;
-  int count
+  int count;
 } keytab[] = {{"auto", 0},     {"break", 0},    {"case", 0},     {"char", 0},
               {"const", 0},    {"continue", 0}, {"default", 0},  {"do", 0},
               {"double", 0},   {"else", 0},     {"enum", 0},     {"extern", 0},
@@ -30,6 +29,9 @@ struct key {
               {"short", 0},    {"signed", 0},   {"sizeof", 0},   {"static", 0},
               {"struct", 0},   {"switch", 0},   {"typedef", 0},  {"union", 0},
               {"unsigned", 0}, {"void", 0},     {"volatile", 0}, {"while", 0}};
+
+int getword(char *word, int lim);
+int binsearch(char *word, struct key *tab, int n); 
 
 int main(void) {
   /*
@@ -127,7 +129,7 @@ struct rect canonrect(struct rect r) {
   return temp;
 }
 
-int binsearch(char *word, struct key *keytab, int n) {
+int binsearch(char *word, struct key *tab, int n) {
   int cond;
   int low, high, mid;
 
@@ -135,7 +137,7 @@ int binsearch(char *word, struct key *keytab, int n) {
   high = n - 1;
   while (low <= high) {
     mid = (low + high) / 2;
-    if ((cond = strcmp(word, ketab[mid].word)) < 0)
+    if ((cond = strcmp(word, tab[mid].word)) < 0)
       high = mid - 1;
     else if (cond > 0)
       low = mid + 1;
@@ -146,4 +148,43 @@ int binsearch(char *word, struct key *keytab, int n) {
   return -1;
 }
 
-/* TODO: Implement the getword here */
+int getword(char *word, int lim) {
+	int c, getch(void);
+	void ungetch(int c);
+	char *w = word;
+
+	while(isspace(c = getch()));
+
+	if(c != EOF) *w++ = c;
+	if(!isalpha(c)) {
+		*w = '\0';
+		return c;
+	}
+
+	for(; --lim > 0; w++) {
+		if(!isalnum(*w = getch())) {
+			ungetch(*w);
+			break;
+		}
+	}
+
+	*w = '\0';
+	return word[0];
+}
+
+#define MAX_BUFFER_SIZE	100
+int buffer[MAX_BUFFER_SIZE];
+int bufferp = -1;
+
+int getch(void) {
+	return (bufferp >= 0 ? buffer[bufferp--] : getchar());
+}
+
+void ungetch(int c) {
+	if (bufferp > MAX_BUFFER_SIZE) {
+		printf("error: too many characters!\n");
+		return;
+	}
+
+	buffer[++bufferp] = c;
+}
