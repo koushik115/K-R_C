@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define MAXLINES    5000
 char *lineptr[MAXLINES];
@@ -11,7 +12,7 @@ void Qsort(void *lineptr[], int left, int right, int (*cmp)(void *, void *));
 int mycmp(char *s1, char *s2);
 int numcmp(char *s1, char *s2);
 
-int numeric = 0, reverse = 0;
+int numeric = 0, reverse = 0, fold = 0;
     
 int main(int argc, char **argv)
 {
@@ -23,10 +24,25 @@ int main(int argc, char **argv)
                 numeric = 1;
             else if(strcmp(*argv, "-r") == 0)
                 reverse = 1;
+	    else if(strcmp(*argv, "-f") == 0)
+		fold = 1;
         }
     }
     
     if((nlines = readlines(lineptr, MAXLINES)) >= 0) {
+	if(fold) { // If fold is set, convert all characters into lower character 
+		char **current = lineptr;
+		while(*current != NULL) {
+			while(**current != '\0') {
+				if(!islower(**current))
+					**current = **current - 'A' + 'a';
+				(*current)++;
+			}
+			
+			current++;
+		}
+	}
+
         Qsort((void **)lineptr, 0, nlines - 1, (int (*)(void *, void *))mycmp);
         writelines(lineptr, nlines);
         return 0;
