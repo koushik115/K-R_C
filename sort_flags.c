@@ -30,19 +30,6 @@ int main(int argc, char **argv)
     }
     
     if((nlines = readlines(lineptr, MAXLINES)) >= 0) {
-	if(fold) { // If fold is set, convert all characters into lower character 
-		char **current = lineptr;
-		while(*current != NULL) {
-			while(**current != '\0') {
-				if(!islower(**current))
-					**current = **current - 'A' + 'a';
-				(*current)++;
-			}
-			
-			current++;
-		}
-	}
-
         Qsort((void **)lineptr, 0, nlines - 1, (int (*)(void *, void *))mycmp);
         writelines(lineptr, nlines);
         return 0;
@@ -128,12 +115,29 @@ void Qsort(void *v[], int left, int right, int (*cmp)(void *, void *)) {
 }
 
 int mycmp(char *s1, char *s2) {
-    int result;
-    
+    int result = 0;
+    char c1, c2;
     if(numeric) {
         result = numcmp(s1, s2);
+    } else if(fold) {
+	while(*s1 != '\0' && *s2 != '\0') {
+		c1 = tolower(*s1);
+		c2 = tolower(*s2);
+		result = (c1 > c2) ? 1 : (c1 < c2) ? -1 : 0;
+		if(result != 0) break;
+		s1++; s2++;
+	}
+
+	if(!result) {
+		if(*s1 != '\0')
+			result = 1;
+		else if(*s2 != '\0')
+			result = -1;
+		else
+			result = 0;
+	}
     } else {
-        result = strcmp(s1, s2);
+	    result = strcmp(s1, s2);
     }
     
     if(reverse)
