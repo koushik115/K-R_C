@@ -74,7 +74,7 @@ void dirdcl(void) {
 
 	if(tokentype == '(') {
 		dcl();
-		if(tokentype == ')')
+		if(tokentype != ')')
 			printf("error: missing )\n");
 	} else if(tokentype == NAME) 
 		strcpy(name, token);
