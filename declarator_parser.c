@@ -8,6 +8,7 @@ enum { NAME, PARENS, BRACKETS };
 
 void dcl(void);
 void dirdcl(void);
+void undcl(void);
 
 int gettoken(void);
 int tokentype; /* type of last token */
@@ -89,6 +90,29 @@ void dirdcl(void) {
 			strcat(out, token);
 			strcat(out, "of");
 		}
+	}
+}
+
+void undcl(void) {
+	int type;
+	char temp[MAXTOKEN];
+
+	while(gettoken() != EOF) {
+		strcpy(out, token);
+		while((type = gettoken()) != '\n') {
+			if(type == PARENS || type == BRACKETS)
+				strcat(out, token);
+			else if(type == '*') {
+				snprintf(temp, sizeof(temp), "(*%s)", out);
+				strcat(out, temp);
+			} else if(type == NAME) {
+				snprintf(temp, sizeof(temp), "%s %s", token, out);
+				strcat(out, temp);
+			} else 
+				printf("error: invalid input at %s\n", token);
+		}
+
+		printf("%s\n", out);
 	}
 }
 
