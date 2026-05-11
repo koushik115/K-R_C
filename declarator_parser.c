@@ -16,15 +16,22 @@ char token[MAXTOKEN]; /* last token string */
 char name[MAXTOKEN]; /* identifier name */
 char datatype[MAXTOKEN]; /* datatype = char, int, etc. */
 char out[1000]; /* output string */
+int error = 0;
 
 int main(void) {
 	while(gettoken() != EOF) {
+		error = 0;
 		strcpy(datatype, token);
 		out[0] = '\0';
 		dcl();
+
+		if(error)
+			continue;
+
 		if(tokentype != '\n')
 			printf("syntax error\n");
-		printf("%s: %s %s\n", name, out, datatype);
+		else
+			printf("%s: %s %s\n", name, out, datatype);
 	}
 
 	return 0;
@@ -55,7 +62,7 @@ int gettoken(void) {
 		*p = '\0';
 		ungetch(c);
 		return tokentype = NAME;
-	} else 
+	} else
 		return tokentype = c;
 }
 
@@ -66,6 +73,9 @@ void dcl(void) {
 		ns++;
 
 	dirdcl();
+
+	if(error)
+		return;
 	while(ns-- > 0)
 		strcat(out, " pointer to");
 }
@@ -75,20 +85,30 @@ void dirdcl(void) {
 
 	if(tokentype == '(') {
 		dcl();
-		if(tokentype != ')')
+		if(error)
+			return;
+		if(tokentype != ')') {
 			printf("error: missing )\n");
-	} else if(tokentype == NAME) 
+			while((type = gettoken()) != '\n' && type != EOF);
+			error = 1;
+			return;
+		}
+	} else if(tokentype == NAME)
 		strcpy(name, token);
-	else
+	else {
 		printf("error: expected name or (dcl)\n");
+		while((type = gettoken()) != '\n' && type != EOF);
+		error = 1;
+		return;
+	}
 
 	while((type = gettoken()) == PARENS || type == BRACKETS) {
 		if(type == PARENS)
 			strcat(out, " function returning");
 		else {
-			strcat(out, "array");
+			strcat(out, " array");
 			strcat(out, token);
-			strcat(out, "of");
+			strcat(out, " of");
 		}
 	}
 }
@@ -108,7 +128,7 @@ void undcl(void) {
 			} else if(type == NAME) {
 				snprintf(temp, sizeof(temp), "%s %s", token, out);
 				strcat(out, temp);
-			} else 
+			} else
 				printf("error: invalid input at %s\n", token);
 		}
 
